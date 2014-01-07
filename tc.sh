@@ -1,7 +1,17 @@
 #!/bin/sh
 
-DINTF=eth0
-RATE=12000
+if  [ $# -ne 2 ]
+then
+	echo "Usage:"
+	echo "    tc.sh dev rate(Kbit)"
+	exit -1
+fi
+
+INTF=$1
+RATE=$2
+
+#echo $(($RATE * 8 / 10))
+#exit 0
 
 p2pmark=6
 dnsmark=2
@@ -10,36 +20,36 @@ smallmark=1
 bigmark=4
 othermark=5
 
-tc qdisc del dev $DINTF root 2>/dev/null
+tc qdisc del dev $INTF root 2>/dev/null
 
-tc qdisc add dev $DINTF root handle 1: htb default 133
-tc class add dev $DINTF parent 1: classid 1:1 htb rate 1200kbit ceil 12000kbit prio 8
-
-#small
-tc class add dev $DINTF parent 1:1 classid 1:11 htb rate 200kbit ceil 2Mbit prio 1
-#dns
-tc class add dev $DINTF parent 1:1 classid 1:12 htb rate 200kbit ceil 1Mbit prio 2
-
-
-tc class add dev $DINTF parent 1:1 classid 1:13 htb rate 4Mbit ceil 10Mbit prio 8
-#web
-tc class add dev $DINTF parent 1:13 classid 1:131 htb rate 4Mbit ceil 10Mbit prio 4
-#big
-tc class add dev $DINTF parent 1:13 classid 1:132 htb rate 1kbit ceil 10Mbit prio 7
-#other
-tc class add dev $DINTF parent 1:13 classid 1:133 htb rate 1kbit ceil 2Mbit prio 8
-
+tc qdisc add dev $INTF root handle 1: htb default 133
+tc class add dev $INTF parent 1: classid 1:1 htb rate ${RATE}Kbit ceil ${RATE}Kbit prio 8
 
 #small
-tc filter add dev $DINTF parent 1:0 protocol ip prio 1 handle $smallmark fw classid 1:11
+tc class add dev $INTF parent 1:1 classid 1:11 htb rate $(($RATE / 10))Kbit ceil $(($RATE / 6))Kbit prio 1
 #dns
-tc filter add dev $DINTF parent 1:0 protocol ip prio 1 handle $dnsmark fw classid 1:12
+tc class add dev $INTF parent 1:1 classid 1:12 htb rate $(($RATE / 10))Kbit ceil $(($RATE / 8))Kbit prio 2
+
+
+tc class add dev $INTF parent 1:1 classid 1:13 htb rate $(($RATE / 2))Kbit ceil $(($RATE * 8 / 10))Kbit prio 8
 #web
-tc filter add dev $DINTF parent 1:0 protocol ip prio 1 handle $webmark fw classid 1:131
+tc class add dev $INTF parent 1:13 classid 1:131 htb rate $(($RATE / 3))Kbit ceil $(($RATE * 8 / 10))Kbit prio 4
 #big
-tc filter add dev $DINTF parent 1:0 protocol ip prio 1 handle $bigmark fw classid 1:132
+tc class add dev $INTF parent 1:13 classid 1:132 htb rate 50Kbit ceil $(($RATE * 8 / 10))Kbit prio 7
 #other
-tc filter add dev $DINTF parent 1:0 protocol ip prio 1 handle $othermark fw classid 1:133
+tc class add dev $INTF parent 1:13 classid 1:133 htb rate 50Kbit ceil $(($RATE / 8))Kbit prio 8
+
+
+#small
+tc filter add dev $INTF parent 1:0 protocol ip prio 1 handle $smallmark fw classid 1:11
+#dns
+tc filter add dev $INTF parent 1:0 protocol ip prio 1 handle $dnsmark fw classid 1:12
+#web
+tc filter add dev $INTF parent 1:0 protocol ip prio 1 handle $webmark fw classid 1:131
+#big
+tc filter add dev $INTF parent 1:0 protocol ip prio 1 handle $bigmark fw classid 1:132
+#other
+tc filter add dev $INTF parent 1:0 protocol ip prio 1 handle $othermark fw classid 1:133
 
 iptables -t mangle -F
 iptables -t mangle -X
