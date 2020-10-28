@@ -3,7 +3,9 @@
 if  [ $# -ne 2 ]
 then
 	echo "Usage:"
-	echo "    tc.sh dev rate(Kbit)"
+	echo "    tc.sh dev rate(Mbit)"
+	echo " 例子 tc.sh eth0 200"
+	echo " 例子 tc.sh脚本 eth0网卡 200M"
 	exit -1
 fi
 
@@ -23,21 +25,21 @@ othermark=5
 tc qdisc del dev $INTF root 2>/dev/null
 
 tc qdisc add dev $INTF root handle 1: htb default 133
-tc class add dev $INTF parent 1: classid 1:1 htb rate ${RATE}Kbit ceil ${RATE}Kbit prio 8
+tc class add dev $INTF parent 1: classid 1:1 htb rate ${RATE}Mbit ceil ${RATE}Mbit prio 8
 
 #small
-tc class add dev $INTF parent 1:1 classid 1:11 htb rate $(($RATE / 10))Kbit ceil $(($RATE / 6))Kbit prio 1
+tc class add dev $INTF parent 1:1 classid 1:11 htb rate $(($RATE / 10))Mbit ceil $(($RATE / 6))Mbit prio 1
 #dns
-tc class add dev $INTF parent 1:1 classid 1:12 htb rate $(($RATE / 10))Kbit ceil $(($RATE / 8))Kbit prio 2
+tc class add dev $INTF parent 1:1 classid 1:12 htb rate $(($RATE / 10))Mbit ceil $(($RATE / 8))Mbit prio 2
 
 
-tc class add dev $INTF parent 1:1 classid 1:13 htb rate $(($RATE / 2))Kbit ceil $(($RATE * 8 / 10))Kbit prio 8
+tc class add dev $INTF parent 1:1 classid 1:13 htb rate $(($RATE / 2))Mbit ceil $(($RATE * 8 / 10))Mbit prio 8
 #web
-tc class add dev $INTF parent 1:13 classid 1:131 htb rate $(($RATE / 3))Kbit ceil $(($RATE * 8 / 10))Kbit prio 4
+tc class add dev $INTF parent 1:13 classid 1:131 htb rate $(($RATE / 3))Mbit ceil $(($RATE * 8 / 10))Mbit prio 4
 #big
-tc class add dev $INTF parent 1:13 classid 1:132 htb rate 50Kbit ceil $(($RATE * 8 / 10))Kbit prio 7
+tc class add dev $INTF parent 1:13 classid 1:132 htb rate 50Mbit ceil $(($RATE * 8 / 10))Mbit prio 7
 #other
-tc class add dev $INTF parent 1:13 classid 1:133 htb rate 50Kbit ceil $(($RATE / 8))Kbit prio 8
+tc class add dev $INTF parent 1:13 classid 1:133 htb rate 50Mbit ceil $(($RATE / 8))Mbit prio 8
 
 
 #small
@@ -92,3 +94,4 @@ $IPMAN -m mark --mark $bigmark -j RETURN
 #other
 $IPMAN -j MARK --set-mark $othermark
 $IPMAN -m mark --mark $othermark -j RETURN
+
